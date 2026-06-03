@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
-import { Upload, FileSpreadsheet, ListChecks, ClipboardList, Mail, Clock } from "lucide-react";
+import { Upload, FileSpreadsheet, ListChecks, ClipboardList, Mail, Clock, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
