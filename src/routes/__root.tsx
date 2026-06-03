@@ -77,14 +77,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "OfficeAssistant" },
+      { name: "description", content: "Office-Assistant is a small web app for office workers. 
+You upload an Excel file, click a time button like \"This Month\", and AI writes you a quick summary." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "OfficeAssistant" },
+      { property: "og:description", content: "Office-Assistant is a small web app for office workers. 
+You upload an Excel file, click a time button like \"This Month\", and AI writes you a quick summary." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "OfficeAssistant" },
+      { name: "twitter:description", content: "Office-Assistant is a small web app for office workers. 
+You upload an Excel file, click a time button like \"This Month\", and AI writes you a quick summary." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/24571d99-551e-4bd0-bafc-dd7a7ce9f1d7" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/24571d99-551e-4bd0-bafc-dd7a7ce9f1d7" },
     ],
     links: [
       {
