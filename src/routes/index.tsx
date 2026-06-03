@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
-import { Upload, FileSpreadsheet, ListChecks, ClipboardList, Mail, Clock } from "lucide-react";
+import { Upload, FileSpreadsheet, ListChecks, ClipboardList, Mail, Clock, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -27,9 +27,42 @@ const fakeAnswers: Record<string, string> = {
     "Subject: Weekly Update — Steady Progress Across the Board\n\nHi team,\n\nThis week we hit 92% of our sales target and onboarded two new clients. Bread continues to lead the category at R5,000. Next week we'll focus on improving slow-moving items and finalising the Q4 plan.\n\nThanks for your hard work,\n— The Team",
 };
 
+type TimeRange = "today" | "week" | "month" | "year";
+
+const timeRanges: { key: TimeRange; label: string }[] = [
+  { key: "today", label: "Today" },
+  { key: "week", label: "This Week" },
+  { key: "month", label: "This Month" },
+  { key: "year", label: "This Year" },
+];
+
+const smartSummaries: Record<TimeRange, string[]> = {
+  today: [
+    "Trend: Sales are up 4% compared to yesterday.",
+    "Best product: Coffee brought in the most money today.",
+    "Busiest hour: 10am had the highest number of orders.",
+  ],
+  week: [
+    "Trend: Sales went up 15% compared to last week.",
+    "Best product: Bread made the most money this week.",
+    "Busiest day: Friday had the highest sales.",
+  ],
+  month: [
+    "Trend: Revenue grew 8% compared to last month.",
+    "Best product: Pastries were the top earner this month.",
+    "Busiest week: Week 3 brought in the most sales.",
+  ],
+  year: [
+    "Trend: Annual revenue is up 22% compared to last year.",
+    "Best product: Bread is the top seller for the year.",
+    "Busiest month: December had the highest sales overall.",
+  ],
+};
+
 function Index() {
   const [uploaded, setUploaded] = useState<string | null>(null);
   const [activeAction, setActiveAction] = useState<keyof typeof fakeAnswers | null>(null);
+  const [activeRange, setActiveRange] = useState<TimeRange | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -93,7 +126,50 @@ function Index() {
               </div>
             )}
 
-            {/* Action output */}
+            {/* Time range + Smart Summary */}
+            {uploaded && (
+              <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+                <h2 className="text-base font-semibold text-foreground mb-4">Time range</h2>
+                <div className="flex flex-wrap gap-2">
+                  {timeRanges.map((r) => {
+                    const active = activeRange === r.key;
+                    return (
+                      <button
+                        key={r.key}
+                        onClick={() => setActiveRange(r.key)}
+                        className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+                          active
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border bg-card text-foreground hover:bg-secondary"
+                        }`}
+                      >
+                        {r.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-6 rounded-lg border border-primary/20 bg-primary/10 p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    <h3 className="text-sm font-semibold text-foreground">Smart Summary</h3>
+                  </div>
+                  {activeRange ? (
+                    <ul className="space-y-2 text-sm text-foreground leading-relaxed">
+                      {smartSummaries[activeRange].map((s, i) => (
+                        <li key={i} className="flex gap-2">
+                          <span className="text-primary font-semibold">{i + 1}.</span>
+                          <span>{s}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Pick a time range above to see a quick summary.</p>
+                  )}
+                </div>
+              </div>
+            )}
+
             {activeAction && (
               <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
                 <h2 className="text-base font-semibold text-foreground mb-3">Generated for you</h2>
