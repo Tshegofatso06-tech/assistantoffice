@@ -78,20 +78,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "OfficeAssistant" },
-      { name: "description", content: "Office-Assistant is a small web app for office workers. 
-You upload an Excel file, click a time button like This Month, and AI writes you a quick summary." },
+      { name: "description", content: "Office Helper Hub streamlines office tasks with data analysis and AI-powered content generation." },
       { name: "author", content: "Lovable" },
       { property: "og:title", content: "OfficeAssistant" },
-      { property: "og:description", content: "Office-Assistant is a small web app for office workers. 
-You upload an Excel file, click a time button like This Month, and AI writes you a quick summary." },
+      { property: "og:description", content: "Office Helper Hub streamlines office tasks with data analysis and AI-powered content generation." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
       { name: "twitter:title", content: "OfficeAssistant" },
-      { name: "twitter:description", content: "Office-Assistant is a small web app for office workers. 
-You upload an Excel file, click a time button like This Month, and AI writes you a quick summary." },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/24571d99-551e-4bd0-bafc-dd7a7ce9f1d7" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/24571d99-551e-4bd0-bafc-dd7a7ce9f1d7" },
+      { name: "twitter:description", content: "Office Helper Hub streamlines office tasks with data analysis and AI-powered content generation." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/77238e26-681b-45dd-a667-0b352eb51d4a/id-preview-e13622d9--ddb45d59-23a0-479c-99cd-670944a032fa.lovable.app-1780513846543.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/77238e26-681b-45dd-a667-0b352eb51d4a/id-preview-e13622d9--ddb45d59-23a0-479c-99cd-670944a032fa.lovable.app-1780513846543.png" },
     ],
     links: [
       {
