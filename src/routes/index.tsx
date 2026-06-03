@@ -36,28 +36,11 @@ const timeRanges: { key: TimeRange; label: string }[] = [
   { key: "year", label: "This Year" },
 ];
 
-const smartSummaries: Record<TimeRange, string[]> = {
-  today: [
-    "Trend: Sales are up 4% compared to yesterday.",
-    "Best product: Coffee brought in the most money today.",
-    "Busiest hour: 10am had the highest number of orders.",
-  ],
-  week: [
-    "Trend: Sales went up 15% compared to last week.",
-    "Best product: Bread made the most money this week.",
-    "Busiest day: Friday had the highest sales.",
-  ],
-  month: [
-    "Trend: Revenue grew 8% compared to last month.",
-    "Best product: Pastries were the top earner this month.",
-    "Busiest week: Week 3 brought in the most sales.",
-  ],
-  year: [
-    "Trend: Annual revenue is up 22% compared to last year.",
-    "Best product: Bread is the top seller for the year.",
-    "Busiest month: December had the highest sales overall.",
-  ],
-};
+const smartSummaryText = [
+  "Trend: Sales went up 15% compared to last week.",
+  "Best product: Bread made the most money.",
+  "Busiest day: Friday had the highest sales.",
+];
 
 function Index() {
   const [uploaded, setUploaded] = useState<string | null>(null);
@@ -146,14 +129,14 @@ function Index() {
 
             <div className="pt-4 space-y-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Smart Summary</p>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-4 gap-1">
                 {timeRanges.map((r) => {
                   const active = activeRange === r.key;
                   return (
                     <button
                       key={r.key}
                       onClick={() => setActiveRange(r.key)}
-                      className={`rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
+                      className={`rounded-lg border px-2 py-2 text-xs font-medium transition-colors ${
                         active
                           ? "border-primary bg-primary text-primary-foreground"
                           : "border-border bg-card text-foreground hover:bg-secondary"
@@ -164,14 +147,14 @@ function Index() {
                   );
                 })}
               </div>
-              <div className="rounded-lg border border-primary/20 bg-primary/10 p-4">
+              <div className="rounded-lg border border-primary/20 bg-sky-100 p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Sparkles className="h-4 w-4 text-primary" />
                   <h3 className="text-sm font-semibold text-foreground">Smart Summary</h3>
                 </div>
                 {activeRange ? (
                   <ul className="space-y-2 text-sm text-foreground leading-relaxed">
-                    {smartSummaries[activeRange].map((s, i) => (
+                    {smartSummaryText.map((s, i) => (
                       <li key={i} className="flex gap-2">
                         <span className="text-primary font-semibold">{i + 1}.</span>
                         <span>{s}</span>
