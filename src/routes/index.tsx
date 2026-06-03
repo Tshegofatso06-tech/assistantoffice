@@ -126,7 +126,50 @@ function Index() {
               </div>
             )}
 
-            {/* Action output */}
+            {/* Time range + Smart Summary */}
+            {uploaded && (
+              <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+                <h2 className="text-base font-semibold text-foreground mb-4">Time range</h2>
+                <div className="flex flex-wrap gap-2">
+                  {timeRanges.map((r) => {
+                    const active = activeRange === r.key;
+                    return (
+                      <button
+                        key={r.key}
+                        onClick={() => setActiveRange(r.key)}
+                        className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+                          active
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border bg-card text-foreground hover:bg-secondary"
+                        }`}
+                      >
+                        {r.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-6 rounded-lg border border-primary/20 bg-primary/10 p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    <h3 className="text-sm font-semibold text-foreground">Smart Summary</h3>
+                  </div>
+                  {activeRange ? (
+                    <ul className="space-y-2 text-sm text-foreground leading-relaxed">
+                      {smartSummaries[activeRange].map((s, i) => (
+                        <li key={i} className="flex gap-2">
+                          <span className="text-primary font-semibold">{i + 1}.</span>
+                          <span>{s}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Pick a time range above to see a quick summary.</p>
+                  )}
+                </div>
+              </div>
+            )}
+
             {activeAction && (
               <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
                 <h2 className="text-base font-semibold text-foreground mb-3">Generated for you</h2>
