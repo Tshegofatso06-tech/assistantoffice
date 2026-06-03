@@ -186,6 +186,46 @@ function Index() {
             <ActionButton icon={ListChecks} label="Make Instructions" onClick={() => setActiveAction("instructions")} active={activeAction === "instructions"} />
             <ActionButton icon={ClipboardList} label="Meeting Notes to To-Do List" onClick={() => setActiveAction("meeting")} active={activeAction === "meeting"} />
             <ActionButton icon={Mail} label="Write Weekly Email" onClick={() => setActiveAction("email")} active={activeAction === "email"} />
+
+            <div className="pt-4 space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Smart Summary</p>
+              <div className="grid grid-cols-2 gap-2">
+                {timeRanges.map((r) => {
+                  const active = activeRange === r.key;
+                  return (
+                    <button
+                      key={r.key}
+                      onClick={() => setActiveRange(r.key)}
+                      className={`rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
+                        active
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-card text-foreground hover:bg-secondary"
+                      }`}
+                    >
+                      {r.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="rounded-lg border border-primary/20 bg-primary/10 p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <h3 className="text-sm font-semibold text-foreground">Smart Summary</h3>
+                </div>
+                {activeRange ? (
+                  <ul className="space-y-2 text-sm text-foreground leading-relaxed">
+                    {smartSummaries[activeRange].map((s, i) => (
+                      <li key={i} className="flex gap-2">
+                        <span className="text-primary font-semibold">{i + 1}.</span>
+                        <span>{s}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Pick a time range to see a quick summary.</p>
+                )}
+              </div>
+            </div>
           </aside>
         </div>
 
