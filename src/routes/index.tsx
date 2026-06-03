@@ -27,6 +27,38 @@ const fakeAnswers: Record<string, string> = {
     "Subject: Weekly Update — Steady Progress Across the Board\n\nHi team,\n\nThis week we hit 92% of our sales target and onboarded two new clients. Bread continues to lead the category at R5,000. Next week we'll focus on improving slow-moving items and finalising the Q4 plan.\n\nThanks for your hard work,\n— The Team",
 };
 
+type TimeRange = "today" | "week" | "month" | "year";
+
+const timeRanges: { key: TimeRange; label: string }[] = [
+  { key: "today", label: "Today" },
+  { key: "week", label: "This Week" },
+  { key: "month", label: "This Month" },
+  { key: "year", label: "This Year" },
+];
+
+const smartSummaries: Record<TimeRange, string[]> = {
+  today: [
+    "Trend: Sales are up 4% compared to yesterday.",
+    "Best product: Coffee brought in the most money today.",
+    "Busiest hour: 10am had the highest number of orders.",
+  ],
+  week: [
+    "Trend: Sales went up 15% compared to last week.",
+    "Best product: Bread made the most money this week.",
+    "Busiest day: Friday had the highest sales.",
+  ],
+  month: [
+    "Trend: Revenue grew 8% compared to last month.",
+    "Best product: Pastries were the top earner this month.",
+    "Busiest week: Week 3 brought in the most sales.",
+  ],
+  year: [
+    "Trend: Annual revenue is up 22% compared to last year.",
+    "Best product: Bread is the top seller for the year.",
+    "Busiest month: December had the highest sales overall.",
+  ],
+};
+
 function Index() {
   const [uploaded, setUploaded] = useState<string | null>(null);
   const [activeAction, setActiveAction] = useState<keyof typeof fakeAnswers | null>(null);
