@@ -62,6 +62,7 @@ const smartSummaries: Record<TimeRange, string[]> = {
 function Index() {
   const [uploaded, setUploaded] = useState<string | null>(null);
   const [activeAction, setActiveAction] = useState<keyof typeof fakeAnswers | null>(null);
+  const [activeRange, setActiveRange] = useState<TimeRange | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
