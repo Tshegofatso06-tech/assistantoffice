@@ -277,19 +277,39 @@ function Index() {
 
             {activeAction && (
               <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-                <h2 className="text-base font-semibold text-foreground mb-3">Generated for you</h2>
-                <pre className="whitespace-pre-wrap rounded-lg bg-secondary p-4 text-sm text-foreground font-sans leading-relaxed">
-                  {fakeAnswers[activeAction]}
-                </pre>
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-base font-semibold text-foreground">{actionLabels[activeAction]}</h2>
+                  {actionText && (
+                    <button
+                      onClick={copyAction}
+                      className="text-xs font-medium rounded-md border border-border bg-card px-2.5 py-1 hover:bg-secondary"
+                    >
+                      {copied ? "Copied!" : "Copy"}
+                    </button>
+                  )}
+                </div>
+                {loadingAction ? (
+                  <p className="text-sm text-foreground flex items-center gap-2"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating…</p>
+                ) : actionError ? (
+                  <p className="text-sm text-destructive flex items-center gap-1.5">
+                    <AlertCircle className="h-3.5 w-3.5" /> {actionError}
+                  </p>
+                ) : actionText ? (
+                  <textarea
+                    readOnly
+                    value={actionText}
+                    className="w-full min-h-[200px] rounded-lg bg-secondary p-4 text-sm text-foreground font-sans leading-relaxed resize-y border border-border focus:outline-none focus:ring-1 focus:ring-ring"
+                  />
+                ) : null}
               </div>
             )}
           </section>
 
           <aside className="space-y-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Quick actions</p>
-            <ActionButton icon={ListChecks} label="Make Instructions" onClick={() => setActiveAction("instructions")} active={activeAction === "instructions"} />
-            <ActionButton icon={ClipboardList} label="Meeting Notes to To-Do List" onClick={() => setActiveAction("meeting")} active={activeAction === "meeting"} />
-            <ActionButton icon={Mail} label="Write Weekly Email" onClick={() => setActiveAction("email")} active={activeAction === "email"} />
+            <ActionButton icon={ListChecks} label="Send Instructions" onClick={() => handleAction("instructions")} active={activeAction === "instructions"} />
+            <ActionButton icon={ClipboardList} label="Write Notes" onClick={() => handleAction("meeting")} active={activeAction === "meeting"} />
+            <ActionButton icon={Mail} label="Draft Email" onClick={() => handleAction("email")} active={activeAction === "email"} />
 
             <div className="pt-4 space-y-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Smart Summary</p>
