@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import * as XLSX from "xlsx";
 import { Upload, FileSpreadsheet, ListChecks, ClipboardList, Mail, Clock, Sparkles, AlertCircle, Loader2 } from "lucide-react";
 import { generateSummary } from "@/lib/api/summary.functions";
+import { generateAction } from "@/lib/api/action.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -15,13 +16,16 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-const fakeAnswers: Record<string, string> = {
-  instructions:
-    "1. Open the shared drive.\n2. Locate the 'Weekly Reports' folder.\n3. Save your file using the format YYYY-MM-DD_Name.xlsx.\n4. Notify your manager via email once uploaded.\n5. Archive last week's file into the 'Archive' subfolder.",
-  meeting:
-    "• Follow up with Sarah re: Q3 budget by Friday\n• Send updated client proposal to Mark\n• Book meeting room for next Tuesday's review\n• Share marketing assets with the design team\n• Prepare slides for Monday's all-hands",
-  email:
-    "Subject: Weekly Update — Steady Progress Across the Board\n\nHi team,\n\nThis week we hit 92% of our sales target and onboarded two new clients. Next week we'll focus on improving slow-moving items and finalising the Q4 plan.\n\nThanks for your hard work,\n— The Team",
+type ActionKey = "instructions" | "meeting" | "email";
+const actionToServer: Record<ActionKey, "instructions" | "notes" | "email"> = {
+  instructions: "instructions",
+  meeting: "notes",
+  email: "email",
+};
+const actionLabels: Record<ActionKey, string> = {
+  instructions: "Send Instructions",
+  meeting: "Write Notes",
+  email: "Draft Email",
 };
 
 type TimeRange = "thisWeek" | "lastWeek" | "thisMonth" | "lastMonth";
@@ -80,13 +84,62 @@ function Index() {
   const [columns, setColumns] = useState<string[]>([]);
   const [dateColumn, setDateColumn] = useState<string | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
-  const [activeAction, setActiveAction] = useState<keyof typeof fakeAnswers | null>(null);
+  const [activeAction, setActiveAction] = useState<ActionKey | null>(null);
   const [activeRange, setActiveRange] = useState<TimeRange | null>(null);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [summaryText, setSummaryText] = useState<string | null>(null);
   const [loadingSummary, setLoadingSummary] = useState(false);
+  const [actionText, setActionText] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [loadingAction, setLoadingAction] = useState(false);
+  const [copied, setCopied] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const runSummary = useServerFn(generateSummary);
+  const runAction = useServerFn(generateAction);
+
+  const handleAction = async (key: ActionKey) => {
+    setActiveAction(key);
+    setActionText(null);
+    setActionError(null);
+    setCopied(false);
+    if (!rows || rows.length === 0) {
+      setActionError("Upload Excel file first before generating text");
+      return;
+    }
+    setLoadingAction(true);
+    try {
+      const sample = rows.slice(0, 20).map((r) => {
+        const out: Record<string, unknown> = {};
+        for (const k of columns) {
+          const v = r[k];
+          out[k] = v instanceof Date ? v.toISOString().slice(0, 10) : v;
+        }
+        return out;
+      });
+      const res = await runAction({
+        data: {
+          action: actionToServer[key],
+          columns,
+          sampleRows: sample,
+          totalRows: rows.length,
+        },
+      });
+      setActionText(res.text);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Failed to generate");
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  const copyAction = async () => {
+    if (!actionText) return;
+    try {
+      await navigator.clipboard.writeText(actionText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {}
+  };
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -224,19 +277,39 @@ function Index() {
 
             {activeAction && (
               <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-                <h2 className="text-base font-semibold text-foreground mb-3">Generated for you</h2>
-                <pre className="whitespace-pre-wrap rounded-lg bg-secondary p-4 text-sm text-foreground font-sans leading-relaxed">
-                  {fakeAnswers[activeAction]}
-                </pre>
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-base font-semibold text-foreground">{actionLabels[activeAction]}</h2>
+                  {actionText && (
+                    <button
+                      onClick={copyAction}
+                      className="text-xs font-medium rounded-md border border-border bg-card px-2.5 py-1 hover:bg-secondary"
+                    >
+                      {copied ? "Copied!" : "Copy"}
+                    </button>
+                  )}
+                </div>
+                {loadingAction ? (
+                  <p className="text-sm text-foreground flex items-center gap-2"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating…</p>
+                ) : actionError ? (
+                  <p className="text-sm text-destructive flex items-center gap-1.5">
+                    <AlertCircle className="h-3.5 w-3.5" /> {actionError}
+                  </p>
+                ) : actionText ? (
+                  <textarea
+                    readOnly
+                    value={actionText}
+                    className="w-full min-h-[200px] rounded-lg bg-secondary p-4 text-sm text-foreground font-sans leading-relaxed resize-y border border-border focus:outline-none focus:ring-1 focus:ring-ring"
+                  />
+                ) : null}
               </div>
             )}
           </section>
 
           <aside className="space-y-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Quick actions</p>
-            <ActionButton icon={ListChecks} label="Make Instructions" onClick={() => setActiveAction("instructions")} active={activeAction === "instructions"} />
-            <ActionButton icon={ClipboardList} label="Meeting Notes to To-Do List" onClick={() => setActiveAction("meeting")} active={activeAction === "meeting"} />
-            <ActionButton icon={Mail} label="Write Weekly Email" onClick={() => setActiveAction("email")} active={activeAction === "email"} />
+            <ActionButton icon={ListChecks} label="Send Instructions" onClick={() => handleAction("instructions")} active={activeAction === "instructions"} />
+            <ActionButton icon={ClipboardList} label="Write Notes" onClick={() => handleAction("meeting")} active={activeAction === "meeting"} />
+            <ActionButton icon={Mail} label="Draft Email" onClick={() => handleAction("email")} active={activeAction === "email"} />
 
             <div className="pt-4 space-y-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Smart Summary</p>
