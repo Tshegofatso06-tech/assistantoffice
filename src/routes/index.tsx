@@ -84,13 +84,62 @@ function Index() {
   const [columns, setColumns] = useState<string[]>([]);
   const [dateColumn, setDateColumn] = useState<string | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
-  const [activeAction, setActiveAction] = useState<keyof typeof fakeAnswers | null>(null);
+  const [activeAction, setActiveAction] = useState<ActionKey | null>(null);
   const [activeRange, setActiveRange] = useState<TimeRange | null>(null);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [summaryText, setSummaryText] = useState<string | null>(null);
   const [loadingSummary, setLoadingSummary] = useState(false);
+  const [actionText, setActionText] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [loadingAction, setLoadingAction] = useState(false);
+  const [copied, setCopied] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const runSummary = useServerFn(generateSummary);
+  const runAction = useServerFn(generateAction);
+
+  const handleAction = async (key: ActionKey) => {
+    setActiveAction(key);
+    setActionText(null);
+    setActionError(null);
+    setCopied(false);
+    if (!rows || rows.length === 0) {
+      setActionError("Upload Excel file first before generating text");
+      return;
+    }
+    setLoadingAction(true);
+    try {
+      const sample = rows.slice(0, 20).map((r) => {
+        const out: Record<string, unknown> = {};
+        for (const k of columns) {
+          const v = r[k];
+          out[k] = v instanceof Date ? v.toISOString().slice(0, 10) : v;
+        }
+        return out;
+      });
+      const res = await runAction({
+        data: {
+          action: actionToServer[key],
+          columns,
+          sampleRows: sample,
+          totalRows: rows.length,
+        },
+      });
+      setActionText(res.text);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Failed to generate");
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  const copyAction = async () => {
+    if (!actionText) return;
+    try {
+      await navigator.clipboard.writeText(actionText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {}
+  };
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
