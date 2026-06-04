@@ -79,7 +79,7 @@ I upload a farm spreadsheet, click 'Scientific Summary', and AI tells me cattle 
 
 ### Sample Prompts Used - Prompt Engineering Proof
 1. Draft Email Prompt
-"Based on columns X,Y,Z. Write professional email with Subject line. 4-5 sentences. 
+"Based on columns, Write professional email with Subject line. 4-5 sentences. 
 If Date column exists mention date range. If numeric columns exist include totals. 
 Adapt tone for client/manager/team based on data type."
 
