@@ -71,3 +71,24 @@ Debugged generic file parsing
 How was it tested
 I upload a farm spreadsheet, click 'Scientific Summary', and AI tells me cattle counts and top farms in 3 seconds. Same web works for sales data too.
 
+### Responsible AI Practices
+- **Human-in-the-loop**: AI output should be reviewed before sending emails or making decisions
+- **Data privacy**: Files are processed in browser memory only, not stored on servers
+- **Transparency**: Users see data preview before AI analysis to verify correctness
+- **Limitations**: AI may misinterpret data. Always validate totals and insights
+
+### Sample Prompts Used - Prompt Engineering Proof
+1. Draft Email Prompt
+"Based on columns X,Y,Z. Write professional email with Subject line. 4-5 sentences. 
+If Date column exists mention date range. If numeric columns exist include totals. 
+Adapt tone for client/manager/team based on data type."
+
+2. Trends & Patterns Prompt:
+"Find 3 trends in this data. If Date column exists check growth over time. 
+Find highest/lowest values, correlations between columns, and statistical outliers. 
+Explain in simple business language."
+
+3. Weekly Plan Prompt:
+"Create structured weekly task plan from this data. Prioritize by urgency/importance. 
+Suggest time optimization: batch similar tasks, delegate low-value work. 
+Format as Monday to Friday daily plan."
