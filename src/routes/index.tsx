@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import * as XLSX from "xlsx";
-import { Upload, FileSpreadsheet, ListChecks, ClipboardList, Mail, Clock, Sparkles, AlertCircle } from "lucide-react";
+import { Upload, FileSpreadsheet, ListChecks, ClipboardList, Mail, Clock, Sparkles, AlertCircle, Loader2 } from "lucide-react";
+import { generateSummary } from "@/lib/api/summary.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -31,14 +33,21 @@ const timeRanges: { key: TimeRange; label: string }[] = [
   { key: "lastMonth", label: "Last Month" },
 ];
 
-type Row = { date: Date; amount: number; sales: number };
+type Row = Record<string, unknown>;
+
+function findDateColumn(columns: string[]): string | null {
+  const lower = columns.map((c) => c.toLowerCase().trim());
+  const exact = lower.findIndex((c) => c === "date");
+  if (exact !== -1) return columns[exact];
+  const partial = lower.findIndex((c) => c.includes("date"));
+  return partial !== -1 ? columns[partial] : null;
+}
 
 function parseDate(v: unknown): Date | null {
   if (v instanceof Date) return v;
   if (typeof v === "number") {
-    // Excel serial date
     const d = XLSX.SSF.parse_date_code(v);
-    if (d) return new Date(d.y, d.m - 1, d.d, d.H || 0, d.M || 0, d.S || 0);
+    if (d) return new Date(d.y, d.m - 1, d.d);
   }
   if (typeof v === "string") {
     const d = new Date(v);
@@ -47,110 +56,69 @@ function parseDate(v: unknown): Date | null {
   return null;
 }
 
-function toNum(v: unknown): number {
-  if (typeof v === "number") return v;
-  if (typeof v === "string") {
-    const n = parseFloat(v.replace(/[^0-9.-]/g, ""));
-    return isNaN(n) ? 0 : n;
-  }
-  return 0;
-}
-
-function startOfDay(d: Date) {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-}
+function startOfDay(d: Date) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
 
 function getRange(key: TimeRange): { from: Date; to: Date } {
-  const now = new Date();
-  const today = startOfDay(now);
-  const dow = today.getDay(); // 0=Sun
-  const monOffset = (dow + 6) % 7; // days since Monday
-  const thisMonStart = new Date(today); thisMonStart.setDate(today.getDate() - monOffset);
-  const lastMonStart = new Date(thisMonStart); lastMonStart.setDate(thisMonStart.getDate() - 7);
-  const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-  const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-
+  const today = startOfDay(new Date());
+  const dow = today.getDay();
+  const monOffset = (dow + 6) % 7;
+  const thisMon = new Date(today); thisMon.setDate(today.getDate() - monOffset);
+  const lastMon = new Date(thisMon); lastMon.setDate(thisMon.getDate() - 7);
+  const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
   switch (key) {
-    case "thisWeek":
-      return { from: thisMonStart, to: new Date(thisMonStart.getTime() + 7 * 86400000) };
-    case "lastWeek":
-      return { from: lastMonStart, to: thisMonStart };
-    case "thisMonth":
-      return { from: thisMonthStart, to: new Date(today.getFullYear(), today.getMonth() + 1, 1) };
-    case "lastMonth":
-      return { from: lastMonthStart, to: thisMonthStart };
+    case "thisWeek": return { from: thisMon, to: new Date(thisMon.getTime() + 7 * 86400000) };
+    case "lastWeek": return { from: lastMon, to: thisMon };
+    case "thisMonth": return { from: thisMonth, to: new Date(today.getFullYear(), today.getMonth() + 1, 1) };
+    case "lastMonth": return { from: lastMonth, to: thisMonth };
   }
-}
-
-function summarize(rows: Row[], key: TimeRange): string[] {
-  const { from, to } = getRange(key);
-  const filtered = rows.filter((r) => r.date >= from && r.date < to);
-  if (filtered.length === 0) {
-    return [`No records found for ${timeRanges.find((t) => t.key === key)?.label}.`];
-  }
-  const totalSales = filtered.reduce((s, r) => s + r.sales, 0);
-  const totalAmount = filtered.reduce((s, r) => s + r.amount, 0);
-  // Best day by sales
-  const byDay = new Map<string, number>();
-  filtered.forEach((r) => {
-    const k = startOfDay(r.date).toDateString();
-    byDay.set(k, (byDay.get(k) || 0) + r.sales);
-  });
-  let bestDay = ""; let bestVal = -Infinity;
-  byDay.forEach((v, k) => { if (v > bestVal) { bestVal = v; bestDay = k; } });
-
-  return [
-    `Total sales: ${totalSales.toLocaleString()} across ${filtered.length} record${filtered.length === 1 ? "" : "s"}.`,
-    `Total amount: ${totalAmount.toLocaleString()}.`,
-    `Best day: ${bestDay} with ${bestVal.toLocaleString()} in sales.`,
-  ];
 }
 
 function Index() {
   const [uploaded, setUploaded] = useState<string | null>(null);
   const [rows, setRows] = useState<Row[] | null>(null);
+  const [columns, setColumns] = useState<string[]>([]);
+  const [dateColumn, setDateColumn] = useState<string | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
   const [activeAction, setActiveAction] = useState<keyof typeof fakeAnswers | null>(null);
   const [activeRange, setActiveRange] = useState<TimeRange | null>(null);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [summaryText, setSummaryText] = useState<string | null>(null);
+  const [loadingSummary, setLoadingSummary] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const runSummary = useServerFn(generateSummary);
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
     setParseError(null);
     setActiveRange(null);
+    setSummaryText(null);
+    setSummaryError(null);
     try {
       const buf = await f.arrayBuffer();
       const wb = XLSX.read(buf, { type: "array", cellDates: true });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: null });
-      const parsed: Row[] = [];
-      for (const r of json) {
-        const dateRaw = r.Date ?? r.date;
-        const amountRaw = r.Amount ?? r.amount;
-        const salesRaw = r.Sales ?? r.sales;
-        const date = parseDate(dateRaw);
-        if (!date) continue;
-        parsed.push({ date, amount: toNum(amountRaw), sales: toNum(salesRaw) });
-      }
-      if (parsed.length === 0) {
-        setParseError("No valid rows found. Make sure your file has Date, Amount and Sales columns.");
-        setRows(null);
-        setUploaded(null);
+      const json = XLSX.utils.sheet_to_json<Row>(ws, { defval: null });
+      if (json.length === 0) {
+        setParseError("File uploaded but no data found");
+        setRows(null); setColumns([]); setDateColumn(null); setUploaded(f.name);
         return;
       }
-      setRows(parsed);
+      const colSet = new Set<string>();
+      json.forEach((r) => Object.keys(r).forEach((k) => colSet.add(k)));
+      const cols = Array.from(colSet);
+      setRows(json);
+      setColumns(cols);
+      setDateColumn(findDateColumn(cols));
       setUploaded(f.name);
-      setSummaryError(null);
-    } catch (err) {
+    } catch {
       setParseError("Could not read that file. Please upload a valid .xlsx file.");
-      setRows(null);
-      setUploaded(null);
+      setRows(null); setColumns([]); setDateColumn(null); setUploaded(null);
     }
   };
 
-  const handleRange = (key: TimeRange) => {
+  const handleRange = async (key: TimeRange) => {
     if (!rows) {
       setSummaryError("Please upload Excel file first");
       setActiveRange(null);
@@ -158,9 +126,53 @@ function Index() {
     }
     setSummaryError(null);
     setActiveRange(key);
-  };
+    setSummaryText(null);
+    setLoadingSummary(true);
 
-  const summary = activeRange && rows ? summarize(rows, activeRange) : null;
+    let filtered = rows;
+    let rangeLabel = timeRanges.find((t) => t.key === key)?.label ?? "";
+    let noDateNote = "";
+    if (dateColumn) {
+      const { from, to } = getRange(key);
+      filtered = rows.filter((r) => {
+        const d = parseDate(r[dateColumn]);
+        return d !== null && d >= from && d < to;
+      });
+    } else {
+      noDateNote = "No date column found, showing full data. ";
+      rangeLabel = "all rows";
+    }
+
+    try {
+      // Serialize Dates to strings for JSON transport
+      const sample = filtered.slice(0, 50).map((r) => {
+        const out: Record<string, unknown> = {};
+        for (const k of columns) {
+          const v = r[k];
+          out[k] = v instanceof Date ? v.toISOString().slice(0, 10) : v;
+        }
+        return out;
+      });
+      if (sample.length === 0) {
+        setSummaryText(`${noDateNote}No rows match ${rangeLabel}.`);
+        setLoadingSummary(false);
+        return;
+      }
+      const res = await runSummary({
+        data: {
+          columns,
+          sampleRows: sample,
+          totalRows: filtered.length,
+          rangeLabel,
+        },
+      });
+      setSummaryText(noDateNote + res.summary);
+    } catch (err) {
+      setSummaryError(err instanceof Error ? err.message : "Failed to generate summary");
+    } finally {
+      setLoadingSummary(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -182,15 +194,9 @@ function Index() {
             <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
               <h2 className="text-base font-semibold text-foreground mb-1">Upload your Excel file</h2>
               <p className="text-sm text-muted-foreground mb-4">
-                We'll use the Date, Amount and Sales columns to build your summary.
+                Any spreadsheet works. We'll detect columns automatically.
               </p>
-              <input
-                ref={fileRef}
-                type="file"
-                accept=".xlsx,.xls"
-                onChange={handleFile}
-                className="hidden"
-              />
+              <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={handleFile} className="hidden" />
               <button
                 onClick={() => fileRef.current?.click()}
                 className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
@@ -199,9 +205,15 @@ function Index() {
                 {uploaded ? "Upload another file" : "Upload Excel file"}
               </button>
               {uploaded && (
-                <p className="mt-3 text-xs text-muted-foreground">
-                  Loaded: <span className="text-foreground font-medium">{uploaded}</span> ({rows?.length} rows)
-                </p>
+                <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+                  <p>Loaded: <span className="text-foreground font-medium">{uploaded}</span>{rows ? ` (${rows.length} rows)` : ""}</p>
+                  {columns.length > 0 && (
+                    <p>Detected columns: <span className="text-foreground">{columns.join(", ")}</span></p>
+                  )}
+                  {columns.length > 0 && (
+                    <p>{dateColumn ? <>Date column: <span className="text-foreground">{dateColumn}</span></> : "No date column detected — time filters will summarize all rows."}</p>
+                  )}
+                </div>
               )}
               {parseError && (
                 <p className="mt-3 text-xs text-destructive flex items-center gap-1.5">
@@ -235,7 +247,8 @@ function Index() {
                     <button
                       key={r.key}
                       onClick={() => handleRange(r.key)}
-                      className={`rounded-lg border px-2 py-2 text-xs font-medium transition-colors ${
+                      disabled={loadingSummary}
+                      className={`rounded-lg border px-2 py-2 text-xs font-medium transition-colors disabled:opacity-60 ${
                         active
                           ? "border-primary bg-primary text-primary-foreground"
                           : "border-border bg-card text-foreground hover:bg-secondary"
@@ -251,22 +264,17 @@ function Index() {
                   <Sparkles className="h-4 w-4 text-primary" />
                   <h3 className="text-sm font-semibold text-foreground">Smart Summary</h3>
                 </div>
-                {summaryError ? (
+                {loadingSummary ? (
+                  <p className="text-sm text-foreground flex items-center gap-2"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Analyzing…</p>
+                ) : summaryError ? (
                   <p className="text-sm text-destructive flex items-center gap-1.5">
                     <AlertCircle className="h-3.5 w-3.5" /> {summaryError}
                   </p>
-                ) : summary ? (
-                  <ul className="space-y-2 text-sm text-foreground leading-relaxed">
-                    {summary.map((s, i) => (
-                      <li key={i} className="flex gap-2">
-                        <span className="text-primary font-semibold">{i + 1}.</span>
-                        <span>{s}</span>
-                      </li>
-                    ))}
-                  </ul>
+                ) : summaryText ? (
+                  <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{summaryText}</p>
                 ) : (
                   <p className="text-sm text-muted-foreground">
-                    {uploaded ? "Pick a time range to see a quick summary." : "Upload a file, then pick a time range."}
+                    {uploaded ? "Pick a time range to see an AI summary." : "Upload a file, then pick a time range."}
                   </p>
                 )}
               </div>
