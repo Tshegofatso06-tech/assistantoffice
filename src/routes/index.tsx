@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import * as XLSX from "xlsx";
 import { Upload, FileSpreadsheet, ListChecks, ClipboardList, Mail, Clock, Sparkles, AlertCircle, Loader2 } from "lucide-react";
 import { generateSummary } from "@/lib/api/summary.functions";
+import { generateAction } from "@/lib/api/action.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -15,13 +16,16 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-const fakeAnswers: Record<string, string> = {
-  instructions:
-    "1. Open the shared drive.\n2. Locate the 'Weekly Reports' folder.\n3. Save your file using the format YYYY-MM-DD_Name.xlsx.\n4. Notify your manager via email once uploaded.\n5. Archive last week's file into the 'Archive' subfolder.",
-  meeting:
-    "• Follow up with Sarah re: Q3 budget by Friday\n• Send updated client proposal to Mark\n• Book meeting room for next Tuesday's review\n• Share marketing assets with the design team\n• Prepare slides for Monday's all-hands",
-  email:
-    "Subject: Weekly Update — Steady Progress Across the Board\n\nHi team,\n\nThis week we hit 92% of our sales target and onboarded two new clients. Next week we'll focus on improving slow-moving items and finalising the Q4 plan.\n\nThanks for your hard work,\n— The Team",
+type ActionKey = "instructions" | "meeting" | "email";
+const actionToServer: Record<ActionKey, "instructions" | "notes" | "email"> = {
+  instructions: "instructions",
+  meeting: "notes",
+  email: "email",
+};
+const actionLabels: Record<ActionKey, string> = {
+  instructions: "Send Instructions",
+  meeting: "Write Notes",
+  email: "Draft Email",
 };
 
 type TimeRange = "thisWeek" | "lastWeek" | "thisMonth" | "lastMonth";
